@@ -1,11 +1,11 @@
 <?php
 /**
 Plugin Name: SRS Simple hits Counter
-Plugin URI: http://sandyrig.com/srs-simple-hits-counter/
-Description: Simple plugin to count and show a total number of hits (Unique visitors or page-views) to the site without using any third party code.
-Author: Atif N
-Version: 2.0
-Author URI: http://atif.rocks/
+Plugin URI: https://atif.rocks/srs-simple-hits-counter/
+Description: This is a simple plugin to count and show a total number of hits (Unique visitors or page-views) to your WordPress website without using any third party code.
+Author: Atif Rocks
+Version: 2.0.1
+Author URI: https://atif.rocks/
  */
 
 // Exit if accessed directly
@@ -84,8 +84,14 @@ function srs_update_views_visitors($post_id, $visitors, $views){
     $date = Date("Y-m-d");
     $time = Date("h:i:s");
     $post_data = $wpdb->get_results($wpdb->prepare("SELECT * FROM $table_name WHERE (srs_post_id = %d AND srs_date = %s )", $post_id, $date));
-    $visitors = $post_data[0]->srs_visitors_count+$visitors;
-    $views = $post_data[0]->srs_views_count+$views;
+    if ($post_data){
+        $visitors = $post_data[0]->srs_visitors_count+$visitors;
+        $views = $post_data[0]->srs_views_count+$views;
+    }else{
+        $visitors = $visitors;
+        $views = $views;
+    }
+
     if($post_data){
         $wpdb->update($table_name, array('srs_visitors_count' => $visitors, 'srs_views_count' => $views), array('srs_post_id' => $post_id, 'srs_date' => "$date"));
     }else{
@@ -613,37 +619,42 @@ function srs_admin_settings_page(){
 
     if( isset($_POST['srs_shc_options_save']) && wp_verify_nonce($_POST['srs-form-nonce'], 'srs-form-9171') ){
         // Reset Unique Visitor Counter
-        if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
-            $sql = "UPDATE $table_name SET `srs_visitors_count` = '0'";
-            $wpdb->query($sql);
-            $views = 'null';
-            if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
-                $views = sanitize_text_field($_POST['page_views_reset_val']);
+        if (isset($_POST['unique_visitor_checkbox'])){
+            if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
+                $sql = "UPDATE $table_name SET `srs_visitors_count` = '0'";
+                $wpdb->query($sql);
+                $views = 'null';
+                if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
+                    $views = sanitize_text_field($_POST['page_views_reset_val']);
+                }
+                srs_reset_views_visitors(0, sanitize_text_field($_POST['unique_visitor_reset_val']), $views);
             }
-            srs_reset_views_visitors(0, sanitize_text_field($_POST['unique_visitor_reset_val']), $views);
         }
 
+
         // Reset Page Views Counter
-        if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
-            $visitors = 'null';
-            if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
-                $visitors = sanitize_text_field($_POST['unique_visitor_reset_val']);
+        if (isset($_POST['unique_visitor_checkbox'])){
+            if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
+                $visitors = 'null';
+                if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
+                    $visitors = sanitize_text_field($_POST['unique_visitor_reset_val']);
+                }
+                $sql = "UPDATE $table_name SET `srs_views_count` = '0' ";
+                $wpdb->query($sql);
+                srs_reset_views_visitors(0, $visitors, sanitize_text_field($_POST['page_views_reset_val']));
             }
-            $sql = "UPDATE $table_name SET `srs_views_count` = '0' ";
-            $wpdb->query($sql);
-            srs_reset_views_visitors(0, $visitors, sanitize_text_field($_POST['page_views_reset_val']));
         }
 
         // Change number format
-        if($_POST['page_views_number_format_checkbox']!='' && $_POST['page_views_number_format_checkbox'] == 'yes'){
+        if(isset($_POST['page_views_number_format_checkbox']) && $_POST['page_views_number_format_checkbox'] == 'yes'){
             update_option('srs_pageViews_number_format_count', 'yes' );
         }else{
             update_option('srs_pageViews_number_format_count', 'no' );
         }
 
         // Reset plugin data
-        if($_POST['reset_data']!='' && $_POST['reset_data'] == 'yes'){
-            $wpdb->query("TRUNCATE $table_name");
+        if (isset($_POST['reset_data']) && $_POST['reset_data'] == 'yes'){
+                $wpdb->query("TRUNCATE $table_name");
         }
     }
     $data_return_visitors = srs_count_total_visitors_views('visitors');
