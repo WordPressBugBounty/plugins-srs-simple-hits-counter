@@ -4,8 +4,8 @@ Plugin Name: SRS Simple hits Counter
 Plugin URI: http://sandyrig.com/srs-simple-hits-counter/
 Description: Simple plugin to count and show a total number of hits (Unique visitors or page-views) to the site without using any third party code.
 Author: Atif N
-Version: 1.1.1
-Author URI: https://atif.rocks
+Version: 2.0
+Author URI: http://atif.rocks/
  */
 
 // Exit if accessed directly
@@ -254,15 +254,18 @@ function srs_add_menu_function_call(){
 
 //generate graph and load js libraries  for graph
 function srs_hits_counter_graphs(){
+
     global $wpdb;
+
     //load libraries for graph
     wp_enqueue_script( 'srs_hits_counter_Chart_bundle_js', plugins_url( '/js/Chart.bundle.min.js', __FILE__ ), array('jquery'), '', true);
     wp_enqueue_script( 'srs_hits_counter_Chart_js', plugins_url( '/js/Chart.min.js', __FILE__ ), array('jquery'), '', true);
+
     //check if user select last month or last week option   .. default to last week
     $dates_range = array();
     $begin = new DateTime();
     if(isset($_GET['range_filter']) && sanitize_text_field($_GET['range_filter']) == 'month'){
-
+        $xAxes_lable = "Month";
         $begin->sub(new DateInterval('P29D'));
         $end = new DateTime();
         $end->add(new DateInterval('P1D'));
@@ -272,6 +275,7 @@ function srs_hits_counter_graphs(){
             $dates_range[] = $dt->format( "Y-m-d" );
         }
     }else{
+        $xAxes_lable = "Week";
         $begin->sub(new DateInterval('P6D'));
         $end = new DateTime();
         $end->add(new DateInterval('P1D'));
@@ -281,25 +285,228 @@ function srs_hits_counter_graphs(){
             $dates_range[] = $dt->format( "Y-m-d" );
         }
     }
+
     $table_name = $wpdb->prefix . 'srs_simple_hits_counter';
 
-    //retrieve data from database
+    //Get data for the graph
     $post_data = $wpdb->get_results("SELECT srs_id, srs_date, srs_time, srs_post_id,  sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' GROUP BY srs_date ORDER BY srs_date DESC ");
-    ?>
-    <!--- generating html for filters -->
-    <div class="filter" style="margin-top: 30px; width: 50%;">
-        <form action="" method="get" class="">
-            <select name="range_filter" style="width: 20%">
-                <option value="week"> Last Week</option>
-                <option value="month" <?php if(isset($_GET['range_filter']) && sanitize_text_field($_GET['range_filter']) == 'month'){ echo "selected"; } ?>>Last Month</option>
-            </select>
-            <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']) ?>">
-            <input type="submit" value="Apply" style="width: 10%" class="button button-primary">
-        </form>
+    $total_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' ORDER BY srs_date DESC ");
+    $lifetime_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name ORDER BY srs_date DESC ");
 
+    ?>
+
+    <div class="srs-simple-hits-counter">
+        <div class="srs-base">
+            <div class="srs-container">
+                <!--Header-->
+                <div class="srs-header">
+                    <div class="srs-header-title">
+                        <h2>Simple Hits Counter</h2>
+                    </div>
+                    <div class="srs-total-stats">
+                        <div class="srs-total-title">Life Time</div>
+                        <div class="srs-total-visitors">
+                            <div>Visitors:</div>
+                            <div><?php echo number_format(intval($lifetime_count[0]->srs_visitors_count)) ?></div>
+                        </div>
+                        <div class="srs-total-views">
+                            <div>Views:</div>
+                            <div><?php echo number_format(intval($lifetime_count[0]->srs_views_count)) ?></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--Filter-->
+                <div class="srs-filter srs-row">
+                    <form action="" method="get" class="">
+                        <select name="range_filter" style="">
+                            <option value="week">Week to date</option>
+                            <option value="month" <?php if(isset($_GET['range_filter']) && sanitize_text_field($_GET['range_filter']) == 'month'){ echo "selected"; } ?>>Month to date</option>
+                        </select>
+                        <input type="hidden" name="page" value="<?php echo esc_attr($_GET['page']) ?>">
+                        <input type="submit" value="Apply" style="" class="button button-primary">
+                    </form>
+                </div>
+
+                <!--Stats Row-->
+                <div class="srs-row">
+
+                    <!--Stats-->
+                    <div class="srs-stats">
+                        <div class="srs-stats-visitors">
+                            <div class="srs-stats-title">Visitors</div>
+                            <div class="srs-stats-count"><?php echo $total_count[0]->srs_visitors_count ?></div>
+                        </div>
+                        <div class="srs-stats-views">
+                            <div class="srs-stats-title">Views</div>
+                            <div class="srs-stats-count"><?php echo $total_count[0]->srs_views_count ?></div>
+                        </div>
+                    </div>
+
+                    <!--Graph-->
+                    <div class="srs-graph">
+                        <!-- Add canvas in which we will show graph   -->
+                        <canvas id="srs_visitors_views_charts" width="100" height="35"></canvas>
+                    </div>
+
+                    <!--Credits-->
+                    <div class="srs-credit">
+                        <div class="atif-rocks">
+                            <p>Simple Hits Counter by <a href="https://atif.rocks/">Atif Rocks</a></p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
     </div>
-    <!-- Add canvas in which we will show graph   -->
-    <canvas id="srs_visitors_views_charts" style="width: 75% !important;"></canvas>
+
+
+    <style>
+        #wpcontent{
+            background: #f0f0f1;
+        }
+        .srs-base{
+            padding-right: 8px;
+        }
+        .srs-container{
+            width: 100%;
+            margin-left: auto;
+            box-sizing: border-box;
+            margin-right: auto;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 16px;
+            gap: 24px;
+        }
+        .srs-row {
+            background-color: rgb(255, 255, 255);
+            color: rgba(0, 0, 0, 0.87);
+            box-shadow: none;
+            display: flex;
+            -webkit-box-pack: justify;
+            justify-content: space-between;
+            transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 4px;
+            flex-direction: column;
+            padding: 24px 32px;
+        }
+        .srs-header{
+            display: flex;
+            justify-content: space-between;
+        }
+        .srs-header-title h2{
+            margin-top: 40px;
+            margin-bottom: 12px;
+            font-size: 26px;
+        }
+        .srs-total-stats{
+            display: flex;
+        }
+        .srs-total-stats>div{
+            display: flex;
+            gap: 5px;
+        }
+        .srs-total-stats>div>div{
+            display: flex;
+        }
+        .srs-total-title, .srs-total-visitors, .srs-total-views{
+            /*width: 100px;*/
+            padding: 47px 0px 5px 10px;
+            font-size: 14px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .srs-total-title{
+            font-weight: 500;
+        }
+        .srs-stats{
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            padding-bottom: 50px;
+            gap: 40px;
+        }
+        .srs-stats>div{
+            width: 100px;
+            /*float: left;*/
+            padding: 20px;
+            font-weight: 500;
+            background: #ffffff;
+            border-radius: 5px;
+            /*border: 1px solid #efefef;*/
+        }
+        .srs-stats{
+            .srs-stats-visitors{
+                border: 1px solid #45bfc0;
+                background-color: #eaf8f8;
+                background-color: #f7fcfc;
+            }
+            .srs-stats-views{
+                border: 1px solid #c9cbcf;
+                background-color: #f7f8f8;
+                background-color: #fbfbfb;
+            }
+        }
+        .srs-stats-title{
+            font-size: 12px;
+        }
+        .srs-stats-count{
+            font-size: 22px;
+            margin-top: 20px;
+        }
+        .srs-graph{
+
+        }
+        .srs-credit{
+            margin-top: 50px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        @media (min-width: 1200px) {
+            .srs-container{
+                max-width: 1200px;
+            }
+            .srs-stats{
+                gap: 40px;
+            }
+        }
+        @media (min-width: 900px) {
+            .srs-container {
+                /*padding-top: 48px;*/
+                /*gap: 24px;*/
+            }
+            .srs-row {
+                /*padding: 24px 32px;*/
+            }
+        }
+
+        @media (max-width: 450px) {
+            .srs-header, .srs-filter {
+                justify-content: center;
+            }
+            .srs-filter form{
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+            }
+            .srs-header{
+                flex-direction: column;
+            }
+            .srs-header>div{
+                display: flex;
+                justify-content: center;
+            }
+            .srs-total-title, .srs-total-visitors, .srs-total-views{
+                padding-top: 20px;
+            }
+        }
+
+    </style>
+
+
     <script>
         //javascript code for graph
         var visitors = [];
@@ -307,27 +514,27 @@ function srs_hits_counter_graphs(){
         var date_labels = [];
         var counter = 0;
         <?php
-        $srs_visitors_count = 0;
-        $srs_views_count = 0;
-        $srs_date = 0;
-        //$dates_range = array_reverse($dates_range);
-        foreach ($dates_range as $date){
-        $srs_date = date("F j, Y", strtotime($date));
-        foreach($post_data as $post){
-            if(date("Y-m-d", strtotime($post->srs_date)) == $date){
-                $srs_visitors_count = $post->srs_visitors_count;
-                $srs_views_count = $post->srs_views_count;
+            $srs_visitors_count = 0;
+            $srs_views_count = 0;
+            $srs_date = 0;
+            //$dates_range = array_reverse($dates_range);
+            foreach ($dates_range as $date){
+                $srs_date = date("M j", strtotime($date));
+                foreach($post_data as $post){
+                    if(date("Y-m-d", strtotime($post->srs_date)) == $date){
+                        $srs_visitors_count = $post->srs_visitors_count;
+                        $srs_views_count = $post->srs_views_count;
+                    }
+                }
+                ?>
+                visitors[counter] = '<?php echo $srs_visitors_count; ?>';
+                views[counter]  = '<?php echo $srs_views_count; ?>';
+                date_labels[counter] = '<?php echo $srs_date; ?>';
+                counter ++;
+                <?php
+                $srs_visitors_count = 0;
+                $srs_views_count = 0;
             }
-        }
-        ?>
-        visitors[counter] = '<?php echo $srs_visitors_count; ?>';
-        views[counter]  = '<?php echo $srs_views_count; ?>';
-        date_labels[counter] = '<?php echo $srs_date; ?>';
-        counter ++;
-        <?php
-        $srs_visitors_count = 0;
-        $srs_views_count = 0;
-        }
         ?>
         window.chartColors = {
             red: 'rgb(255, 99, 132)',
@@ -344,24 +551,24 @@ function srs_hits_counter_graphs(){
                 labels: date_labels,
                 datasets: [{
                     label: "Visitors",
-                    backgroundColor: window.chartColors.red,
-                    borderColor: window.chartColors.red,
-                    data: visitors,
+                    backgroundColor: window.chartColors.green,
+                    borderColor: window.chartColors.green,
                     fill: false,
+                    data: visitors,
                 }, {
                     label: "Views",
                     fill: false,
-                    backgroundColor: window.chartColors.blue,
-                    borderColor: window.chartColors.blue,
+                    backgroundColor: window.chartColors.grey,
+                    borderColor: window.chartColors.grey,
                     data: views,
                 }]
             },
             options: {
                 responsive: true,
-                title:{
+                /*title:{
                     display:true,
                     text:'Graph'
-                },
+                },*/
                 tooltips: {
                     mode: 'index',
                     intersect: false,
@@ -370,12 +577,15 @@ function srs_hits_counter_graphs(){
                     mode: 'nearest',
                     intersect: true
                 },
-                scales: {
+                /*scales: {
                     xAxes: [{
                         display: true,
                         scaleLabel: {
                             display: true,
-                            labelString: 'Month'
+                            labelString: '',
+                            fontSize: 24,
+                            lineHeight: 1,
+                            fontColor: '#333333'
                         }
                     }],
                     yAxes: [{
@@ -385,7 +595,7 @@ function srs_hits_counter_graphs(){
                             labelString: 'Value'
                         }
                     }]
-                }
+                }*/
             }
         };
         window.onload = function() {
