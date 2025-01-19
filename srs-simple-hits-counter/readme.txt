@@ -3,7 +3,7 @@ Contributors: SandyRig
 Tags: hits, visitor, counter, page-views, analytics, insights
 Requires at least: 3.4
 Tested up to: 6.7.1
-Stable tag: 2.0.1
+Stable tag: 2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,10 +61,16 @@ Note: It keeps counting even when you have no widget or shortcode active. To com
 
 == Changelog ==
 
-= 2.0.1 - 7th Jan 2025 =
+= 2.1 - 19th Jan 2025 =
+* Added popular content section to dashboard
+* Updated UI for settings page
+* Bug fixes on visitors and views reset functions
+* Added admin stylesheet
+
+= 2.0.1 - 17th Jan 2025 =
 * Fixed - PHP Warnings and erros in certain conditions
 
-= 2.0 - 7th Jan 2025 =
+= 2.0 - 17th Jan 2025 =
 * Updated admin dashboard for better analytics view
 
 = 1.1.1 - 20th DEC 2023 =

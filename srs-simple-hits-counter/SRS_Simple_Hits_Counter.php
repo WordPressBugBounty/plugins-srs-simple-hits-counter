@@ -4,7 +4,7 @@ Plugin Name: SRS Simple hits Counter
 Plugin URI: https://atif.rocks/srs-simple-hits-counter/
 Description: This is a simple plugin to count and show a total number of hits (Unique visitors or page-views) to your WordPress website without using any third party code.
 Author: Atif Rocks
-Version: 2.0.1
+Version: 2.1
 Author URI: https://atif.rocks/
  */
 
@@ -128,7 +128,7 @@ function srs_reset_views_visitors($post_id, $visitors, $views){
             $visitors = 0;
         }
         if($views == 'null'){
-            $views == 0;
+            $views = 0;
         }
         $wpdb->insert(
             $table_name,
@@ -266,6 +266,7 @@ function srs_hits_counter_graphs(){
     //load libraries for graph
     wp_enqueue_script( 'srs_hits_counter_Chart_bundle_js', plugins_url( '/js/Chart.bundle.min.js', __FILE__ ), array('jquery'), '', true);
     wp_enqueue_script( 'srs_hits_counter_Chart_js', plugins_url( '/js/Chart.min.js', __FILE__ ), array('jquery'), '', true);
+    wp_enqueue_style( 'srs_hits_counter_Chart_css', plugins_url( '/css/style.css', __FILE__ ));
 
     //check if user select last month or last week option   .. default to last week
     $dates_range = array();
@@ -299,6 +300,9 @@ function srs_hits_counter_graphs(){
     $total_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' ORDER BY srs_date DESC ");
     $lifetime_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name ORDER BY srs_date DESC ");
 
+    $popular_pages = $wpdb->get_results("SELECT srs_id, srs_date, srs_time, srs_post_id,  sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' GROUP BY srs_post_id ORDER BY srs_views_count DESC ");
+
+
     ?>
 
     <div class="srs-simple-hits-counter">
@@ -310,7 +314,7 @@ function srs_hits_counter_graphs(){
                         <h2>Simple Hits Counter</h2>
                     </div>
                     <div class="srs-total-stats">
-                        <div class="srs-total-title">Life Time</div>
+                        <div class="srs-total-title">Lifetime</div>
                         <div class="srs-total-visitors">
                             <div>Visitors:</div>
                             <div><?php echo number_format(intval($lifetime_count[0]->srs_visitors_count)) ?></div>
@@ -355,6 +359,26 @@ function srs_hits_counter_graphs(){
                         <canvas id="srs_visitors_views_charts" width="100" height="35"></canvas>
                     </div>
 
+                    <!--Top pages-->
+                    <div class="srs-top-pages">
+
+                        <div class="srs-top-pages-title">
+                            <h3>Popular Content</h3>
+                            <p>Views</p>
+                        </div>
+
+                        <div class="srs-top-pages-container">
+                            <?php foreach ($popular_pages as $page){ ?>
+                                <div class="top-pages-row">
+                                    <div class="top-pages-cols page-id"><?php echo $page->srs_post_id; ?></div>
+                                    <div class="top-pages-cols page-title"><?php echo "<a target='_blank' href='".get_permalink($page->srs_post_id)."'>".(get_the_title($page->srs_post_id))."</a>"; ?></div>
+                                    <div class="top-pages-cols page-views-count"><?php echo $page->srs_views_count; ?></div>
+                                </div>
+                            <?php }?>
+                        </div>
+
+                    </div>
+
                     <!--Credits-->
                     <div class="srs-credit">
                         <div class="atif-rocks">
@@ -367,151 +391,6 @@ function srs_hits_counter_graphs(){
             </div>
         </div>
     </div>
-
-
-    <style>
-        #wpcontent{
-            background: #f0f0f1;
-        }
-        .srs-base{
-            padding-right: 8px;
-        }
-        .srs-container{
-            width: 100%;
-            margin-left: auto;
-            box-sizing: border-box;
-            margin-right: auto;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 16px;
-            gap: 24px;
-        }
-        .srs-row {
-            background-color: rgb(255, 255, 255);
-            color: rgba(0, 0, 0, 0.87);
-            box-shadow: none;
-            display: flex;
-            -webkit-box-pack: justify;
-            justify-content: space-between;
-            transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
-            border-radius: 4px;
-            flex-direction: column;
-            padding: 24px 32px;
-        }
-        .srs-header{
-            display: flex;
-            justify-content: space-between;
-        }
-        .srs-header-title h2{
-            margin-top: 40px;
-            margin-bottom: 12px;
-            font-size: 26px;
-        }
-        .srs-total-stats{
-            display: flex;
-        }
-        .srs-total-stats>div{
-            display: flex;
-            gap: 5px;
-        }
-        .srs-total-stats>div>div{
-            display: flex;
-        }
-        .srs-total-title, .srs-total-visitors, .srs-total-views{
-            /*width: 100px;*/
-            padding: 47px 0px 5px 10px;
-            font-size: 14px;
-            display: flex;
-            justify-content: flex-end;
-        }
-        .srs-total-title{
-            font-weight: 500;
-        }
-        .srs-stats{
-            display: flex;
-            flex-direction: row;
-            justify-content: flex-start;
-            padding-bottom: 50px;
-            gap: 40px;
-        }
-        .srs-stats>div{
-            width: 100px;
-            /*float: left;*/
-            padding: 20px;
-            font-weight: 500;
-            background: #ffffff;
-            border-radius: 5px;
-            /*border: 1px solid #efefef;*/
-        }
-        .srs-stats{
-            .srs-stats-visitors{
-                border: 1px solid #45bfc0;
-                background-color: #eaf8f8;
-                background-color: #f7fcfc;
-            }
-            .srs-stats-views{
-                border: 1px solid #c9cbcf;
-                background-color: #f7f8f8;
-                background-color: #fbfbfb;
-            }
-        }
-        .srs-stats-title{
-            font-size: 12px;
-        }
-        .srs-stats-count{
-            font-size: 22px;
-            margin-top: 20px;
-        }
-        .srs-graph{
-
-        }
-        .srs-credit{
-            margin-top: 50px;
-            font-style: italic;
-            text-align: center;
-        }
-
-        @media (min-width: 1200px) {
-            .srs-container{
-                max-width: 1200px;
-            }
-            .srs-stats{
-                gap: 40px;
-            }
-        }
-        @media (min-width: 900px) {
-            .srs-container {
-                /*padding-top: 48px;*/
-                /*gap: 24px;*/
-            }
-            .srs-row {
-                /*padding: 24px 32px;*/
-            }
-        }
-
-        @media (max-width: 450px) {
-            .srs-header, .srs-filter {
-                justify-content: center;
-            }
-            .srs-filter form{
-                display: flex;
-                justify-content: center;
-                gap: 20px;
-            }
-            .srs-header{
-                flex-direction: column;
-            }
-            .srs-header>div{
-                display: flex;
-                justify-content: center;
-            }
-            .srs-total-title, .srs-total-visitors, .srs-total-views{
-                padding-top: 20px;
-            }
-        }
-
-    </style>
-
 
     <script>
         //javascript code for graph
@@ -614,33 +493,33 @@ function srs_hits_counter_graphs(){
 
 function srs_admin_settings_page(){
     global $wpdb;
+
+    wp_enqueue_style( 'srs_hits_counter_Chart_css', plugins_url( '/css/style.css', __FILE__ ));
+
+
     $table_name = $wpdb->prefix.'srs_simple_hits_counter';
-    echo '<h1>SRS Simple Hits Counter</h1>';
+//    echo '<h1>SRS Simple Hits Counter</h1>';
 
     if( isset($_POST['srs_shc_options_save']) && wp_verify_nonce($_POST['srs-form-nonce'], 'srs-form-9171') ){
+
         // Reset Unique Visitor Counter
         if (isset($_POST['unique_visitor_checkbox'])){
             if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
                 $sql = "UPDATE $table_name SET `srs_visitors_count` = '0'";
                 $wpdb->query($sql);
                 $views = 'null';
-                if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
-                    $views = sanitize_text_field($_POST['page_views_reset_val']);
-                }
+
                 srs_reset_views_visitors(0, sanitize_text_field($_POST['unique_visitor_reset_val']), $views);
             }
         }
 
-
         // Reset Page Views Counter
-        if (isset($_POST['unique_visitor_checkbox'])){
+        if (isset($_POST['page_views_checkbox'])){
             if( $_POST['page_views_reset_val']!='' &&$_POST['page_views_checkbox'] == "yes" ){
-                $visitors = 'null';
-                if( $_POST['unique_visitor_reset_val']!='' && $_POST['unique_visitor_checkbox'] == "yes" ){
-                    $visitors = sanitize_text_field($_POST['unique_visitor_reset_val']);
-                }
                 $sql = "UPDATE $table_name SET `srs_views_count` = '0' ";
                 $wpdb->query($sql);
+                $visitors = 'null';
+
                 srs_reset_views_visitors(0, $visitors, sanitize_text_field($_POST['page_views_reset_val']));
             }
         }
@@ -663,120 +542,110 @@ function srs_admin_settings_page(){
     $srs_shc_page_views_count = $data_return_views->total;
     $page_views_number_format_checkbox = get_option('srs_pageViews_number_format_count');
     ?>
-    <div class="metabox-holder">
-        <div class="postbox">
-            <h3 class="hndle">
-                <span>Short Codes</span>
-            </h3><?php //print_r($_POST) ?>
-            <div class="inside">
-                <div class="main">
-                    <table class="form-table">
-                        <tbody>
-                        <tr>
-                            <th>Unique Visitors </th>
-                            <td>
-                                [srs_total_visitors]
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Page Views</th>
-                            <td>
-                                [srs_total_pageViews]
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+
+    <div class="srs-simple-hits-counter">
+        <div class="srs-base">
+            <form method="post" action="">
+                <div class="srs-container">
+
+                    <!--Header-->
+                    <div class="srs-header">
+                        <div class="srs-header-title">
+                            <h2>Simple Hits Counter</h2>
+                        </div>
+                    </div>
+
+                    <!--Shortcodes-->
+                    <div class="srs-row">
+                        <div class="srs-shortcodes">
+                            <div class="srs-shortcodes-title">
+                                <h3>Shortcodes</h3>
+                            </div>
+                            <div class="srs-shortcodes-container">
+                                <div class="srs-shortcodes-row">
+                                    <div class="srs-shortcode-type">Unique Visitors</div>
+                                    <div class="srs-shortcode"> [srs_total_visitors]</div>
+                                </div>
+                                <div class="srs-shortcodes-row">
+                                    <div class="srs-shortcode-type">Page Views</div>
+                                    <div class="srs-shortcode">[srs_total_pageViews]</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Reset Counters-->
+                    <div class="srs-row">
+                        <div class="srs-reset-counters">
+                            <div class="srs-reset-counters-title">
+                                <h3>Reset Counters</h3>
+                            </div>
+                            <div class="srs-reset-counters-container">
+                                <div class="srs-reset-counters-row">
+                                    <div class="srs-reset-counters-type">Unique Visitors</div>
+                                    <div class="srs-shortcode">
+                                        <input type="text" name="unique_visitor_reset_val" placeholder="00000" value="<?php echo $srs_shc_unique_visitors_count ?>">
+                                        <br><span class="description">Are you sure you want to reset 'Unique Visitors Counter'? <input type="checkbox" name="unique_visitor_checkbox" value="yes"></span>
+                                    </div>
+                                </div>
+                                <div class="srs-reset-counters-row">
+                                    <div class="srs-reset-counters-type">Page Views</div>
+                                    <div class="srs-shortcode">
+                                        <input type="text" name="page_views_reset_val" placeholder="00000" value="<?php echo $srs_shc_page_views_count ?>">
+                                        <br><span class="description">Are you sure you want to reset 'Page Views Counter'? <input type="checkbox" name="page_views_checkbox" value="yes"></span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Formatting-->
+                    <div class="srs-row">
+                        <div class="srs-reset-counters">
+                            <div class="srs-formatting-title">
+                                <h3>Formatting</h3>
+                            </div>
+                            <div class="srs-formatting-container">
+                                <div class="srs-formatting-row">
+                                    <div class="srs-formatting-type">Add Commas?</div>
+                                    <div class="srs-shortcode">
+                                        <span class="description">Yes? <input type="checkbox" name="page_views_number_format_checkbox" value="yes" <?php if(isset($page_views_number_format_checkbox) && $page_views_number_format_checkbox == 'yes' ){ echo "checked"; } ?> > Example:(10,000,000) </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Reset plugin-->
+                    <div class="srs-row">
+                        <div class="srs-reset-plugin">
+                            <div class="srs-reset-plugin-title">
+                                <h3>Reset Plugin</h3>
+                            </div>
+                            <div class="srs-reset-plugin-container">
+                                <div class="srs-reset-plugin-row">
+                                    <div class="srs-reset-plugin-type">Reset</div>
+                                    <div class="srs-shortcode">
+                                        <span class="description">Yes? <input type="checkbox" name="reset_data" value="yes" > Deletes all the existing plugin data and starts fresh </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Submit-->
+                    <?php $nonce = wp_create_nonce('srs-form-9171') ?>
+                    <input type="hidden" name="srs-form-nonce" value="<?php echo $nonce ?>" />
+                    <p class="submit">
+                        <input type="submit" name="srs_shc_options_save" class="button-primary" value="Save settings">
+                    </p>
 
                 </div>
-            </div>
+            </form>
         </div>
     </div>
-    <form method="post" action="">
 
-        <div class="metabox-holder">
-            <div class="postbox">
-                <h3 class="hndle">
-                    <span>Reset Counters</span>
-                </h3><?php //print_r($_POST) ?>
-                <div class="inside">
-                    <div class="main">
-
-                        <p>Textfields below show the current counter values. To reset the counter, change the value and tick the checkbox below the textfield to verify that you really want to reset that counter. </p>
-                        <table class="form-table">
-                            <tbody>
-                            <tr>
-                                <th>Unique Visitors:</th>
-                                <td>
-                                    <input type="text" name="unique_visitor_reset_val" placeholder="00000" value="<?php echo $srs_shc_unique_visitors_count ?>">
-                                    <br><span class="description">Are you sure you want to reset 'Unique Visitors Counter'? <input type="checkbox" name="unique_visitor_checkbox" value="yes"></span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Page Views:</th>
-                                <td>
-                                    <input type="text" name="page_views_reset_val" placeholder="00000" value="<?php echo $srs_shc_page_views_count ?>">
-                                    <br><span class="description">Are you sure you want to reset 'Page Views Counter'? <input type="checkbox" name="page_views_checkbox" value="yes"></span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="metabox-holder">
-            <div class="postbox">
-                <h3 class="hndle">
-                    <span>Formatting</span>
-                </h3><?php //print_r($_POST) ?>
-                <div class="inside">
-                    <div class="main">
-                        <table class="form-table">
-                            <tbody>
-                            <tr>
-                                <th>Add Commas:</th>
-                                <td>
-                                    <span class="description">Yes? <input type="checkbox" name="page_views_number_format_checkbox" value="yes" <?php if(isset($page_views_number_format_checkbox) && $page_views_number_format_checkbox == 'yes' ){ echo "checked"; } ?> > Example:(10,000,000) </span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="metabox-holder">
-            <div class="postbox">
-                <h3 class="hndle">
-                    <span>Reset Plugin</span>
-                </h3>
-                <div class="inside">
-                    <div class="main">
-                        <table class="form-table">
-                            <tbody>
-                            <tr>
-                                <th>Reset:</th>
-                                <td>
-                                    <span class="description">Yes? <input type="checkbox" name="reset_data" value="yes" > Deletes all the existing plugin data and starts fresh </span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <?php $nonce = wp_create_nonce('srs-form-9171') ?>
-        <input type="hidden" name="srs-form-nonce" value="<?php echo $nonce ?>" />
-        <p class="submit">
-            <input type="submit" name="srs_shc_options_save" class="button-primary" value="Save settings">
-        </p>
-    </form>
     <?php
 }

@@ -1,0 +1,205 @@
+#wpcontent{
+    background: #f0f0f1;
+}
+.srs-base{
+    padding-right: 8px;
+}
+.srs-container{
+    width: 100%;
+    margin-left: auto;
+    box-sizing: border-box;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 16px;
+    gap: 24px;
+}
+.srs-row {
+    background-color: rgb(255, 255, 255);
+    color: rgba(0, 0, 0, 0.87);
+    box-shadow: none;
+    display: flex;
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+    transition: box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 4px;
+    flex-direction: column;
+    padding: 24px 32px;
+}
+
+/*HEADER*/
+.srs-header{
+    display: flex;
+    justify-content: space-between;
+}
+.srs-header-title h2{
+    margin-top: 40px;
+    margin-bottom: 12px;
+    font-size: 26px;
+}
+
+/*STATS*/
+.srs-total-stats{
+    display: flex;
+}
+.srs-total-stats>div{
+    display: flex;
+    gap: 5px;
+}
+.srs-total-stats>div>div{
+    display: flex;
+}
+.srs-total-title, .srs-total-visitors, .srs-total-views{
+    /*width: 100px;*/
+    padding: 47px 0px 5px 10px;
+    font-size: 14px;
+    display: flex;
+    justify-content: flex-end;
+}
+.srs-total-title{
+    font-weight: 500;
+}
+.srs-stats{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding-bottom: 50px;
+    gap: 40px;
+}
+.srs-stats>div{
+    width: 100px;
+    /*float: left;*/
+    padding: 20px;
+    font-weight: 500;
+    background: #ffffff;
+    border-radius: 5px;
+    /*border: 1px solid #efefef;*/
+}
+.srs-stats{
+    .srs-stats-visitors{
+        border: 1px solid #45bfc0;
+        background-color: #eaf8f8;
+        background-color: #f7fcfc;
+    }
+    .srs-stats-views{
+        border: 1px solid #c9cbcf;
+        background-color: #f7f8f8;
+        background-color: #fbfbfb;
+    }
+}
+.srs-stats-title{
+    font-size: 12px;
+}
+.srs-stats-count{
+    font-size: 22px;
+    margin-top: 20px;
+}
+
+/*GRAPH*/
+.srs-graph{
+
+}
+
+/*TOP PAGES*/
+.srs-top-pages{
+    margin-top: 85px;
+
+}
+.srs-top-pages-title{
+    display: flex;
+    justify-content: flex-start;
+    gap: 15px;
+
+
+    h3{
+        width: 300px;
+    }
+    p{
+        font-weight: 600;
+        width: 50px;
+    }
+}
+.top-pages-row{
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+
+    .page-id{
+        width: 50px;
+        display: none;
+    }
+    .page-title{
+        width: 300px;
+    }
+    .page-views-count{
+        width: 50px;
+    }
+}
+
+/*CEEDITS*/
+.srs-credit{
+    margin-top: 50px;
+    font-style: italic;
+    text-align: center;
+}
+
+
+@media (min-width: 1200px) {
+    .srs-container{
+        max-width: 1200px;
+    }
+    .srs-stats{
+        gap: 40px;
+    }
+}
+@media (min-width: 900px) {
+    .srs-container {
+        /*padding-top: 48px;*/
+        /*gap: 24px;*/
+    }
+    .srs-row {
+        /*padding: 24px 32px;*/
+    }
+}
+
+@media (max-width: 450px) {
+    .srs-header, .srs-filter {
+        justify-content: center;
+    }
+    .srs-filter form{
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+    .srs-header{
+        flex-direction: column;
+    }
+    .srs-header>div{
+        display: flex;
+        justify-content: center;
+    }
+    .srs-total-title, .srs-total-visitors, .srs-total-views{
+        padding-top: 20px;
+    }
+}
+
+
+
+
+
+
+/*SETTINGS PAGE*/
+.srs-shortcodes-container, .srs-reset-counters-container, .srs-formatting-container, .srs-reset-plugin-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 30px;
+}
+.srs-shortcodes-row, .srs-reset-counters-row, .srs-formatting-row, .srs-reset-plugin-row{
+    display: flex;
+    gap: 50px;
+}
+.srs-shortcode-type, .srs-reset-counters-type, .srs-formatting-type, .srs-reset-plugin-type{
+    width: 200px;
+    font-weight: 500;
+}
