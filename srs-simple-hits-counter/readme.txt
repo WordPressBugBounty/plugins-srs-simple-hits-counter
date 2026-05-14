@@ -2,20 +2,20 @@
 Contributors: SandyRig
 Tags: hits, visitor, counter, page-views, analytics, insights
 Requires at least: 3.4
-Tested up to: 6.7.1
-Stable tag: 2.1
+Tested up to: 6.9.4
+Stable tag: 2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Simple plugin to count and show a total number of hits (Unique visitors or page-views) to the site without using any third party code.
+Display unique visitor or page-view counts anywhere on your site using widgets or shortcodes — Simple, very lightweight and no third-party code.
 
 == Description ==
 
-As the name suggests, it's a very simple Hit Counter that counts the number of Unique Visitors and Page-views. It's very light weight so it doesn't strain your site or cause render blocking.
+SRS Simple Hits Counter is a simple, very lightweight visitor counter plugin for WordPress that tracks Unique Visitors and Page-views — without causing render blocking or straining your site.
 
-You can show either Unique Visitors count or Page-views count anywhere on the site using widgets or shortcode. You can also add/show both Counters by using two copies of the widget or the shortcode. 
+You can display your visitor counter anywhere on your site using widgets or shortcodes. Show Unique Visitors, Page-views, or both — just use two copies of the widget or shortcode to display both counters together.
 
-Note: It keeps counting even when you have no widget or shortcode active. To completely disable the counter you have to disable the plugin.
+Note: The counter keeps running in the background even when no widget or shortcode is active. To completely stop counting, you need to disable the plugin.
 
 = Features =
 
@@ -60,6 +60,11 @@ Note: It keeps counting even when you have no widget or shortcode active. To com
 4. Widget Demo
 
 == Changelog ==
+
+= 2.2 - 13th May 2026 =
+* Added counter customization feature that let's create a unique look and feel for the counter according you your site design
+* Security updates
+* Other code optimizations
 
 = 2.1 - 19th Jan 2025 =
 * Added popular content section to dashboard
