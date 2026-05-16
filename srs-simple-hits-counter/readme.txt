@@ -3,7 +3,7 @@ Contributors: SandyRig
 Tags: hits, visitor, counter, page-views, analytics, insights
 Requires at least: 3.4
 Tested up to: 6.9.4
-Stable tag: 2.2
+Stable tag: 2.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ Note: The counter keeps running in the background even when no widget or shortco
 4. Widget Demo
 
 == Changelog ==
+
+= 2.2.1 - 16th May 2026 =
+* Transparent background bug fix
+* Increased counter size allow larger numbers
+* Banner and thumbnail update
 
 = 2.2 - 13th May 2026 =
 * Added counter customization feature that let's create a unique look and feel for the counter according you your site design

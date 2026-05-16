@@ -4,7 +4,7 @@ Plugin Name: SRS Simple hits Counter
 Plugin URI: https://atif.rocks/srs-simple-hits-counter/
 Description: This is a simple plugin to count and show a total number of hits (Unique visitors or page-views) to your WordPress website without using any third party code.
 Author: Atif Rocks
-Version: 2.2
+Version: 2.2.1
 Author URI: https://atif.rocks/
  */
 
@@ -21,9 +21,9 @@ function srs_hits_counter_installNewTables() {
         srs_id mediumint(9) UNSIGNED AUTO_INCREMENT NOT NULL,
         srs_date date,
         srs_time time,
-        srs_post_id mediumint(9),
-        srs_visitors_count mediumint(9),
-        srs_views_count mediumint(9),
+        srs_post_id INT UNSIGNED,
+        srs_visitors_count INT UNSIGNED,
+        srs_views_count INT UNSIGNED,
         PRIMARY KEY (srs_id)
         )DEFAULT CHARSET=utf8;";
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -107,7 +107,14 @@ function srs_get_counter_inline_style() {
     $style  = 'font-family:'   . esc_attr($s['font_family'])   . ';';
     $style .= 'font-size:'     . intval($s['font_size'])        . 'px;';
     $style .= 'color:'         . esc_attr($s['color'])          . ';';
-    $style .= 'background:'    . esc_attr($s['background'])     . ';';
+    
+    // Handle transparent background
+    if (!empty($s['background']) && $s['background'] !== 'transparent') {
+        $style .= 'background:'    . esc_attr($s['background'])     . ';';
+    } else {
+        $style .= 'background:transparent;';
+    }
+    
     $style .= 'padding:'       . intval($s['padding'])          . 'px;';
     $style .= 'border-radius:' . intval($s['border_radius'])    . 'px;';
     $style .= 'font-weight:'   . ($s['bold']        === 'yes' ? 'bold'                       : 'normal') . ';';
@@ -123,7 +130,9 @@ function srs_render_meter_counter($number, $css_class) {
     $digits = str_split((string) intval($number));
 
     $digit_color = !empty($s['color'])         ? esc_attr($s['color'])         : '#f0ede8';
-    $tile_bg     = !empty($s['background'])    ? esc_attr($s['background'])    : '#1a1a1a';
+    $tile_bg     = !empty($s['background']) && $s['background'] !== 'transparent'
+        ? esc_attr($s['background'])
+        : '#1a1a1a';
     $br          = !empty($s['border_radius']) ? intval($s['border_radius'])   : 6;
     $font_weight = (!empty($s['bold'])   && $s['bold']   === 'yes') ? '700'    : '700';
     $font_style  = (!empty($s['italic']) && $s['italic'] === 'yes') ? 'italic' : 'normal';
@@ -290,9 +299,9 @@ class SRS_SHC_Widget extends WP_Widget {
 
     function __construct() {
         parent::__construct(
-            'srs_shc_widget',
-            __( 'SRS Simple Hits Counter', 'text_domain' ),
-            array( 'description' => __( 'Add this widget to the sidebar or any other widget area available on your theme where you would like to display the Total Hits Count for your whole site.', 'text_domain' ), )
+            'srs_shc_widget', // Base ID
+            __( 'SRS Simple Hits Counter', 'text_domain' ), // Name
+            array( 'description' => __( 'Add this widget to the sidebar or any other widget area available on your theme where you would like to display the Total Hits Count for your whole site.', 'text_domain' ), ) // Args
         );
     }
 
@@ -367,10 +376,12 @@ function srs_add_menu_function_call(){
 function srs_hits_counter_graphs(){
     global $wpdb;
 
+    //load libraries for graph
     wp_enqueue_script( 'srs_hits_counter_Chart_bundle_js', plugins_url( '/js/Chart.bundle.min.js', __FILE__ ), array('jquery'), '', true);
     wp_enqueue_script( 'srs_hits_counter_Chart_js', plugins_url( '/js/Chart.min.js', __FILE__ ), array('jquery'), '', true);
     wp_enqueue_style( 'srs_hits_counter_Chart_css', plugins_url( '/css/style.css', __FILE__ ));
 
+    //check if user select last month or last week option   .. default to last week
     $dates_range = array();
     $begin = new DateTime();
     if(isset($_GET['range_filter']) && sanitize_text_field($_GET['range_filter']) == 'month'){
@@ -397,8 +408,9 @@ function srs_hits_counter_graphs(){
 
     $table_name = $wpdb->prefix . 'srs_simple_hits_counter';
 
-    $post_data      = $wpdb->get_results("SELECT srs_id, srs_date, srs_time, srs_post_id, sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format("Y-m-d")."' GROUP BY srs_date ORDER BY srs_date DESC ");
-    $total_count    = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format("Y-m-d")."' ORDER BY srs_date DESC ");
+    //Get data for the graph
+    $post_data = $wpdb->get_results("SELECT srs_id, srs_date, srs_time, srs_post_id,  sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' GROUP BY srs_date ORDER BY srs_date DESC ");
+    $total_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format( "Y-m-d" )."' ORDER BY srs_date DESC ");
     $lifetime_count = $wpdb->get_results("SELECT sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name ORDER BY srs_date DESC ");
     $popular_pages  = $wpdb->get_results("SELECT srs_id, srs_date, srs_time, srs_post_id, sum(srs_visitors_count) srs_visitors_count, SUM(srs_views_count) srs_views_count FROM $table_name WHERE srs_date >= '".$begin->format("Y-m-d")."' GROUP BY srs_post_id ORDER BY srs_views_count DESC ");
     ?>
@@ -486,6 +498,7 @@ function srs_hits_counter_graphs(){
     </div>
 
     <script>
+        //javascript code for graph
         var visitors = [];
         var views = [];
         var date_labels = [];
@@ -494,6 +507,7 @@ function srs_hits_counter_graphs(){
             $srs_visitors_count = 0;
             $srs_views_count = 0;
             $srs_date = 0;
+            //$dates_range = array_reverse($dates_range);
             foreach ($dates_range as $date){
                 $srs_date = date("M j", strtotime($date));
                 foreach($post_data as $post){
@@ -541,6 +555,10 @@ function srs_hits_counter_graphs(){
             },
             options: {
                 responsive: true,
+                /*title:{
+                    display:true,
+                    text:'Graph'
+                },*/
                 tooltips: {
                     mode: 'index',
                     intersect: false,
@@ -548,7 +566,26 @@ function srs_hits_counter_graphs(){
                 hover: {
                     mode: 'nearest',
                     intersect: true
-                }
+                },
+                /*scales: {
+                    xAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: '',
+                            fontSize: 24,
+                            lineHeight: 1,
+                            fontColor: '#333333'
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Value'
+                        }
+                    }]
+                }*/
             }
         };
         window.onload = function() {
@@ -597,14 +634,18 @@ function srs_admin_settings_page(){
         }
 
         // Save counter styles
+        $is_transparent = isset($_POST['srs_bg_transparent']) && $_POST['srs_bg_transparent'] == 'yes' ? 'yes' : 'no';
+        $bg_color = $is_transparent === 'yes' ? 'transparent' : sanitize_hex_color($_POST['srs_background']);
+        
         $styles = array(
             'counter_type'  => isset($_POST['srs_counter_type']) && $_POST['srs_counter_type'] === 'meter' ? 'meter' : 'simple',
             'font_family'   => sanitize_text_field($_POST['srs_font_family']),
-            'font_size'     => absint($_POST['srs_font_size']),
+            'font_size'     => max(8, min(120, absint($_POST['srs_font_size']))),
             'color'         => sanitize_hex_color($_POST['srs_color']),
-            'background'    => sanitize_hex_color($_POST['srs_background']),
-            'padding'       => absint($_POST['srs_padding']),
-            'border_radius' => absint($_POST['srs_border_radius']),
+            'background'    => $bg_color,
+            'bg_transparent'=> $is_transparent,
+            'padding'       => max(0, min(100, absint($_POST['srs_padding']))),
+            'border_radius' => max(0, min(100, absint($_POST['srs_border_radius']))),
             'bold'          => isset($_POST['srs_bold'])        && $_POST['srs_bold']        == 'yes' ? 'yes' : 'no',
             'italic'        => isset($_POST['srs_italic'])      && $_POST['srs_italic']      == 'yes' ? 'yes' : 'no',
             'text_shadow'   => isset($_POST['srs_text_shadow']) && $_POST['srs_text_shadow'] == 'yes' ? 'yes' : 'no',
@@ -800,10 +841,11 @@ function srs_admin_settings_page(){
                                 <div class="srs-formatting-row">
                                     <div class="srs-formatting-type">Background Color</div>
                                     <div class="srs-shortcode">
+                                        <input type="hidden" name="srs_bg_transparent" value="no">
                                         <input type="color" name="srs_background" id="srs_background"
-                                               value="<?php echo esc_attr($s['background']); ?>">
+                                               value="<?php echo esc_attr($s['background'] !== 'transparent' ? $s['background'] : '#ffffff'); ?>">
                                         <label style="margin-left:8px;">
-                                            <input type="checkbox" id="srs_bg_transparent"> Transparent
+                                            <input type="checkbox" name="srs_bg_transparent" id="srs_bg_transparent" value="yes" <?php checked($s['bg_transparent'] ?? 'no', 'yes'); ?>> Transparent
                                         </label>
                                     </div>
                                 </div>
