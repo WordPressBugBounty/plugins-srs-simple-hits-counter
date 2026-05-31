@@ -4,7 +4,7 @@ Plugin Name: SRS Simple hits Counter
 Plugin URI: https://atif.rocks/srs-simple-hits-counter/
 Description: This is a simple plugin to count and show a total number of hits (Unique visitors or page-views) to your WordPress website without using any third party code.
 Author: Atif Rocks
-Version: 2.2.1
+Version: 2.2.2
 Author URI: https://atif.rocks/
  */
 
@@ -18,7 +18,7 @@ function srs_hits_counter_installNewTables() {
     $tableName = $wpdb->prefix . "srs_simple_hits_counter";
 
     $sqlCmd = "CREATE TABLE IF NOT EXISTS " . $tableName . "(
-        srs_id mediumint(9) UNSIGNED AUTO_INCREMENT NOT NULL,
+        srs_id INT UNSIGNED AUTO_INCREMENT NOT NULL,
         srs_date date,
         srs_time time,
         srs_post_id INT UNSIGNED,
@@ -45,6 +45,7 @@ function srs_get_previous_visitors_views(){
 register_activation_hook(__FILE__, 'srs_register_style_defaults');
 function srs_register_style_defaults() {
     $defaults = array(
+        'format_type'   => 'customize',
         'counter_type'  => 'simple',
         'font_family'   => 'inherit',
         'font_size'     => '16',
@@ -262,6 +263,9 @@ function srs_getTotal_pageViews(){
     $count = get_option('srs_pageViews_number_format_count') == 'yes'
         ? number_format(intval($data->total))
         : intval($data->total);
+    if (!empty($s['format_type']) && $s['format_type'] === 'simple text') {
+        return "<span class='page-views'>" . $count . "</span>";
+    }
     if ($type === 'meter') {
         return srs_render_meter_counter(intval($data->total), 'page-views');
     }
@@ -279,6 +283,9 @@ function srs_getTotal_visitors(){
     $count = get_option('srs_pageViews_number_format_count') == 'yes'
         ? number_format(intval($data->total))
         : intval($data->total);
+    if (!empty($s['format_type']) && $s['format_type'] === 'simple text') {
+        return "<span class='visitors'>" . $count . "</span>";
+    }
     if ($type === 'meter') {
         return srs_render_meter_counter(intval($data->total), 'visitors');
     }
@@ -317,7 +324,12 @@ class SRS_SHC_Widget extends WP_Widget {
         }
         if( $instance['type'] == 'visitors' ){
             $data_return_visitors = srs_count_total_visitors_views('visitors');
-            if ($type === 'meter') {
+            if (!empty($s['format_type']) && $s['format_type'] === 'simple text') {
+                $srs_total_visitors = get_option('srs_pageViews_number_format_count') == 'yes'
+                    ? number_format(intval($data_return_visitors->total))
+                    : intval($data_return_visitors->total);
+                echo "<span class='visitors'>" . esc_html($srs_total_visitors) . "</span>";
+            } elseif ($type === 'meter') {
                 echo srs_render_meter_counter(intval($data_return_visitors->total), 'visitors');
             } else {
                 $srs_total_visitors = get_option('srs_pageViews_number_format_count') == 'yes'
@@ -327,7 +339,12 @@ class SRS_SHC_Widget extends WP_Widget {
             }
         } elseif( $instance['type'] == 'pageviews' ){
             $data_return_views = srs_count_total_visitors_views('views');
-            if ($type === 'meter') {
+            if (!empty($s['format_type']) && $s['format_type'] === 'simple text') {
+                $srs_total_pageViews = get_option('srs_pageViews_number_format_count') == 'yes'
+                    ? number_format(intval($data_return_views->total))
+                    : intval($data_return_views->total);
+                echo "<span class='page-views'>" . esc_html($srs_total_pageViews) . "</span>";
+            } elseif ($type === 'meter') {
                 echo srs_render_meter_counter(intval($data_return_views->total), 'page-views');
             } else {
                 $srs_total_pageViews = get_option('srs_pageViews_number_format_count') == 'yes'
@@ -603,6 +620,12 @@ function srs_admin_settings_page(){
 
     $table_name = $wpdb->prefix.'srs_simple_hits_counter';
 
+    $db_updated_message = false;
+    if( isset($_POST['srs_db_update']) && wp_verify_nonce($_POST['srs-form-nonce'], 'srs-form-9171') ){
+        $wpdb->query("ALTER TABLE $table_name MODIFY srs_id INT UNSIGNED AUTO_INCREMENT NOT NULL, MODIFY srs_post_id INT UNSIGNED, MODIFY srs_visitors_count INT UNSIGNED, MODIFY srs_views_count INT UNSIGNED");
+        $db_updated_message = true;
+    }
+
     if( isset($_POST['srs_shc_options_save']) && wp_verify_nonce($_POST['srs-form-nonce'], 'srs-form-9171') ){
 
         // Reset Unique Visitor Counter
@@ -638,6 +661,7 @@ function srs_admin_settings_page(){
         $bg_color = $is_transparent === 'yes' ? 'transparent' : sanitize_hex_color($_POST['srs_background']);
         
         $styles = array(
+            'format_type'   => isset($_POST['srs_format_type']) && $_POST['srs_format_type'] === 'simple text' ? 'simple text' : 'customize',
             'counter_type'  => isset($_POST['srs_counter_type']) && $_POST['srs_counter_type'] === 'meter' ? 'meter' : 'simple',
             'font_family'   => sanitize_text_field($_POST['srs_font_family']),
             'font_size'     => max(8, min(120, absint($_POST['srs_font_size']))),
@@ -662,6 +686,7 @@ function srs_admin_settings_page(){
 
     // Style settings
     $s = get_option('srs_counter_styles', array(
+        'format_type'   => 'customize',
         'counter_type'  => 'simple',
         'font_family'   => 'inherit',
         'font_size'     => '16',
@@ -702,6 +727,35 @@ function srs_admin_settings_page(){
                             <h2>Simple Hits Counter</h2>
                         </div>
                     </div>
+
+                    <?php if ($db_updated_message) : ?>
+                    <div class="updated notice is-dismissible" style="margin: 10px 0 20px 0;">
+                        <p><strong>Database updated successfully</strong></p>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php
+                    $col_info = $wpdb->get_row("SHOW COLUMNS FROM $table_name LIKE 'srs_views_count'");
+                    if ($col_info && stripos($col_info->Type, 'int') !== 0) :
+                    ?>
+                    <!--Database update required-->
+                    <div class="srs-row">
+                        <div class="srs-reset-counters">
+                            <div class="srs-formatting-title">
+                                <h3>Database update required</h3>
+                            </div>
+                            <div class="srs-formatting-container">
+                                <div class="srs-formatting-row">
+                                    <div class="srs-formatting-type">Update this plugin's database</div>
+                                    <div class="srs-shortcode">
+                                        <input type="submit" name="srs_db_update" class="button button-primary" value="Update">
+                                        <p class="description">Update your database to support numbers larger than 8388642 for the views and visitors</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                     <!--Shortcodes-->
                     <div class="srs-row">
@@ -772,6 +826,23 @@ function srs_admin_settings_page(){
                                 <p>Applies to both the visitors and page views counters.</p>
                             </div>
                             <div class="srs-formatting-container">
+
+                                <!-- Format Type -->
+                                <div class="srs-formatting-row" id="srs_format_row">
+                                    <div class="srs-formatting-type">Format</div>
+                                    <div class="srs-shortcode">
+                                        <label style="margin-right:16px;">
+                                            <input type="radio" name="srs_format_type" id="srs_format_type_simple_text" value="simple text"
+                                                <?php checked(isset($s['format_type']) && $s['format_type'] === 'simple text', true); ?>>
+                                            simple text
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="srs_format_type" id="srs_format_type_customize" value="customize"
+                                                <?php checked(!isset($s['format_type']) || $s['format_type'] !== 'simple text', true); ?>>
+                                            Customize
+                                        </label>
+                                    </div>
+                                </div>
 
                                 <!-- Counter Type -->
                                 <div class="srs-formatting-row">
@@ -960,6 +1031,11 @@ function srs_admin_settings_page(){
             return el && el.checked;
         }
 
+        function isSimpleText() {
+            var el = document.getElementById('srs_format_type_simple_text');
+            return el && el.checked;
+        }
+
         function buildMeterPreview(col, bg, br, fontWeight, fontStyle, textShadow) {
             var wrapStyle  = 'display:inline-flex;align-items:center;justify-content:center;gap:6px;';
             var digitStyle = 'width:28px;height:32px;background:' + bg + ';border-radius:' + br + 'px;display:inline-flex;align-items:center;justify-content:center;';
@@ -983,7 +1059,26 @@ function srs_admin_settings_page(){
         }
 
         function updatePreview() {
-            toggleMeterFields();
+            var simpText = isSimpleText();
+            var formatRow = document.getElementById('srs_format_row');
+            var styleContainer = formatRow ? formatRow.closest('.srs-formatting-container') : null;
+            var allRows = styleContainer ? styleContainer.querySelectorAll('.srs-formatting-row') : [];
+            
+            for(var i = 0; i < allRows.length; i++) {
+                if (allRows[i] === formatRow) continue;
+                if (simpText) {
+                    allRows[i].style.opacity = '0.4';
+                    allRows[i].style.pointerEvents = 'none';
+                } else {
+                    allRows[i].style.opacity = '1';
+                    allRows[i].style.pointerEvents = '';
+                }
+            }
+            
+            if (!simpText) {
+                toggleMeterFields();
+            }
+
             var ff   = document.getElementById('srs_font_family').value;
             var fsRaw = document.getElementById('srs_font_size').value;
             var fs   = parseInt(fsRaw, 10) || 16;
@@ -1049,7 +1144,8 @@ function srs_admin_settings_page(){
             }
         }
 
-        var watchIds = ['srs_font_family','srs_font_size','srs_color','srs_background',
+        var watchIds = ['srs_format_type_simple_text','srs_format_type_customize',
+                        'srs_font_family','srs_font_size','srs_color','srs_background',
                         'srs_padding','srs_border_radius','srs_bold','srs_italic',
                         'srs_text_shadow','srs_bg_transparent',
                         'srs_counter_type_simple','srs_counter_type_meter',
